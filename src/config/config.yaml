@@ -1,0 +1,16 @@
+api:
+  url: "https://api.coingecko.com/api/v3/coins/markets"
+  wait_time: 60
+  retry_time: 10
+  params: 
+    vs_currency: "usd"
+    order: "market_cap_desc"
+    per_page: 250
+    page: 1
+
+paths:
+  data_dir: "data"
+  checkpoint_dir: "checkpoints"
+
+database:
+  table_name: "crypto_data"

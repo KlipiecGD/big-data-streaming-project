@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+
+# Fetched Data
+data/
+
+# Checkpoints
+checkpoints/
+
+# Ruff
+.ruff_cache/
+
+# Env files
+.env
+
+# Venv
+venv/
+env/
+.env/
+.venv/
+
+# Pdf files
+*.pdf
