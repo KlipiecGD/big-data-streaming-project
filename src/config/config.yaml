@@ -18,4 +18,5 @@ database:
 cloud:
   gcs_bucket_name: "big-data-project-bucket-123456"
   bq_dataset: "crypto_dataset"
-  bq_table: "crypto_data"
+  bq_main_table: "crypto_data"
+  bq_rolling_avg_table: "crypto_rolling_avg"

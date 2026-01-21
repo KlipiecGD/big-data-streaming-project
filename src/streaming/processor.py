@@ -2,10 +2,11 @@ import os
 from dotenv import load_dotenv
 
 from pyspark.sql import SparkSession, DataFrame
-from pyspark.sql.functions import col, to_timestamp, current_timestamp
 from src.config.config import config
 from src.logging_utils.logger import logger
 from src.schemas.crypto_schema import CRYPTO_PRICES_SCHEMA
+
+from src.streaming.transformations import transform_main_data, transform_rolling_average
 
 load_dotenv()
 
@@ -35,33 +36,29 @@ def get_spark_session() -> SparkSession:
         .config("spark.sql.shuffle.partitions", "8") \
         .getOrCreate()
 
-def transform_data(df: DataFrame) -> DataFrame:
+def write_main_data_to_bigquery(batch_df: DataFrame, batch_id: int) -> None:
     """
-    Transform the incoming DataFrame by parsing timestamps, filtering invalid data and performing additional transformations.
-    Args:
-        df (DataFrame): Input DataFrame with raw data
-    Returns:
-        DataFrame: Transformed DataFrame with additional columns
-    """
-    # Filter out records with null 'current_price' and add processing timestamp
-    df = df.withColumn(
-        "last_updated_ts", 
-        to_timestamp(col("last_updated"), "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
-    ).withColumn("processed_at", current_timestamp()) \
-    .filter(col("current_price").isNotNull())
-
-    return df
-
-def write_to_bigquery(batch_df: DataFrame, batch_id: int) -> None:
-    """
-    Write each micro-batch to Google BigQuery.
+    Write each micro-batch of main data to Google BigQuery.
     Args:
         batch_df (DataFrame): The micro-batch DataFrame
         batch_id (int): The batch ID
     """
     batch_df.write.format("bigquery") \
         .option("temporaryGcsBucket", config.get_cloud_settings.get("gcs_bucket_name")) \
-        .option("table", f"{config.get_cloud_settings.get('bq_dataset')}.{config.get_cloud_settings.get('bq_table')}") \
+        .option("table", f"{config.get_cloud_settings.get('bq_dataset')}.{config.get_cloud_settings.get('bq_main_table')}") \
+        .mode("append") \
+        .save()
+    
+def write_rolling_avg_to_bigquery(batch_df: DataFrame, batch_id: int) -> None:
+    """
+    Write each micro-batch of rolling averages to Google BigQuery.
+    Args:
+        batch_df (DataFrame): The micro-batch DataFrame
+        batch_id (int): The batch ID
+    """
+    batch_df.write.format("bigquery") \
+        .option("temporaryGcsBucket", config.get_cloud_settings.get("gcs_bucket_name")) \
+        .option("table", f"{config.get_cloud_settings.get('bq_dataset')}.{config.get_cloud_settings.get('bq_rolling_avg_table')}") \
         .mode("append") \
         .save()
 
@@ -79,15 +76,31 @@ def run_processor() -> None:
         .option("multiLine", "true") \
         .json(data_path)
 
-    transformed_df = transform_data(raw_stream)
-
-    query = transformed_df.writeStream \
-        .foreachBatch(write_to_bigquery) \
-        .option("checkpointLocation", config.get_paths.get("checkpoint_dir", "checkpoints/")) \
-        .outputMode("update") \
+    # Pipeline 1: Detailed per-coin analytics 
+    transformed_df = transform_main_data(raw_stream)
+    
+    query_detailed = transformed_df.writeStream \
+        .foreachBatch(write_main_data_to_bigquery) \
+        .option("checkpointLocation", os.path.join(config.get_paths.get("checkpoint_dir", "checkpoints/"), "main/")) \
+        .outputMode("append") \
         .start()
+    
+    logger.info("Detailed data pipeline started")
 
-    query.awaitTermination()
+    # Pipeline 2: 3-minute rolling averages per coin
+    rolling_avg_df = transform_rolling_average(raw_stream)
+    
+    query_rolling_avg = rolling_avg_df.writeStream \
+        .foreachBatch(write_rolling_avg_to_bigquery) \
+        .option("checkpointLocation", os.path.join(config.get_paths.get("checkpoint_dir", "checkpoints/"), "rolling_avg/")) \
+        .outputMode("append") \
+        .start()
+    
+    logger.info("Rolling average pipeline started")
+
+    # Wait for both queries to terminate
+    query_detailed.awaitTermination()
+    query_rolling_avg.awaitTermination()
 
 if __name__ == "__main__":
     run_processor()
