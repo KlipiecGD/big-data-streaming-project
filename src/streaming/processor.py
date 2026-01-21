@@ -3,37 +3,37 @@ from dotenv import load_dotenv
 
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import col, to_timestamp, current_timestamp
-from pyspark.sql.types import StructType, StructField, StringType, DoubleType
 from src.config.config import config
 from src.logging_utils.logger import logger
+from src.schemas.crypto_schema import CRYPTO_PRICES_SCHEMA
 
 load_dotenv()
 
-# Define the schema for the incoming JSON data
-SCHEMA = StructType([
-    StructField("id", StringType(), True),
-    StructField("symbol", StringType(), True),
-    StructField("name", StringType(), True),
-    StructField("current_price", DoubleType(), True),
-    StructField("market_cap", DoubleType(), True),
-    StructField("market_cap_rank", DoubleType(), True),
-    StructField("total_volume", DoubleType(), True),
-    StructField("high_24h", DoubleType(), True),
-    StructField("low_24h", DoubleType(), True),
-    StructField("price_change_24h", DoubleType(), True),
-    StructField("price_change_percentage_24h", DoubleType(), True),
-    StructField("last_updated", StringType(), True),
-])
-
 def get_spark_session() -> SparkSession:
     """
-    Create and return a SparkSession.
+    Create and return a SparkSession with necessary configurations.
     Returns:
         SparkSession: Configured Spark session
     """
-    return SparkSession.builder \
-        .appName("CryptoRealTimeProcessor") \
-        .config("spark.jars.packages", "org.postgresql:postgresql:42.7.4") \
+    return SparkSession.builder.appName("CryptoRealTimeProcessor") \
+        .config(
+            "spark.jars.packages",
+            (
+                "com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:0.43.1,"
+                "com.google.cloud.bigdataoss:gcs-connector:hadoop3-2.2.5,"
+                "org.postgresql:postgresql:42.7.4"
+            ),
+        ) \
+        .config(
+            "spark.hadoop.fs.gs.impl",
+            "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem",
+        ) \
+        .config("spark.hadoop.google.cloud.auth.service.account.enable", "true") \
+        .config(
+            "spark.hadoop.google.cloud.auth.service.account.json.keyfile",
+            os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
+        ) \
+        .config("spark.sql.shuffle.partitions", "8") \
         .getOrCreate()
 
 def transform_data(df: DataFrame) -> DataFrame:
@@ -70,6 +70,18 @@ def write_to_postgres(batch_df: DataFrame, batch_id: int) -> None:
         properties=properties
     )
 
+def write_to_bigquery(batch_df: DataFrame, batch_id: int) -> None:
+    """
+    Write each micro-batch to Google BigQuery.
+    Args:
+        batch_df (DataFrame): The micro-batch DataFrame
+        batch_id (int): The batch ID
+    """
+    batch_df.write.format("bigquery").option(
+        "table",
+        f"{config.get_cloud_settings.get('bigquery_dataset', 'crypto_dataset')}.{config.get_cloud_settings.get('bigquery_table', 'crypto_data')}"
+    ).mode("append").save()
+
 def run_processor() -> None:
     """Run the streaming data processor."""
     # Initialize Spark session
@@ -78,16 +90,16 @@ def run_processor() -> None:
     data_path = config.get_paths.get("data_dir", "data")
     logger.info(f"Starting streaming processor. Monitoring data at: {data_path}")
     
-    # .option("multiLine", "true") is vital for JSON arrays
+    # Read streaming data
     raw_stream = spark.readStream \
-        .schema(SCHEMA) \
+        .schema(CRYPTO_PRICES_SCHEMA) \
         .option("multiLine", "true") \
         .json(data_path)
 
     transformed_df = transform_data(raw_stream)
 
     query = transformed_df.writeStream \
-        .foreachBatch(write_to_postgres) \
+        .foreachBatch(write_to_bigquery) \
         .option("checkpointLocation", config.get_paths.get("checkpoint_dir", "checkpoints/")) \
         .outputMode("update") \
         .start()

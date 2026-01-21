@@ -1,5 +1,6 @@
 # Python
 __pycache__/
+.DS_Store
 
 # Fetched Data
 data/
@@ -21,3 +22,6 @@ env/
 
 # Pdf files
 *.pdf
+
+# Google Credentials
+credentials/

@@ -73,6 +73,11 @@ class Config:
     def get_db_settings(self) -> dict:
         """Get database settings from config."""
         return self._config.get("database", {})
+    
+    @property
+    def get_cloud_settings(self) -> dict:
+        """Get cloud settings from config."""
+        return self._config.get("cloud", {})
 
 
 config = Config()

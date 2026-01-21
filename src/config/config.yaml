@@ -14,3 +14,8 @@ paths:
 
 database:
   table_name: "crypto_data"
+
+cloud:
+  gcs_bucket_name: "big-data-project-bucket-123456"
+  bq_dataset: "crypto_dataset"
+  bq_table: "crypto_data"

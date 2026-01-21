@@ -27,27 +27,39 @@ def fetch_crypto_data(
     # Fetching data
     while True:
         try:
+            # Make the API request
+            logger.info(f"Fetching data from {url} with params {config.get_api_connection_params}")
             response = requests.get(url, params=config.get_api_connection_params)
+
+            # Raise an error for bad responses
             response.raise_for_status()
             logger.info("Data fetched successfully from the API.")
+
+            # Save the data to a JSON file
             data = response.json()
             filename = f"crypto_data_{int(time.time())}.json"
             save_path_full = os.path.join(save_path, filename)
             logger.info(f"Saving data to {save_path_full}")
+
             with open(save_path_full, "w") as f:
                 json.dump(data, f, indent=2)
+
             logger.info("Data saved successfully.")
+
+            # Fetch data every 60 seconds
             time.sleep(
                 config.get_api_settings.get("wait_time", 60)
-            )  # Fetch data every 60 seconds
+            )  
 
         except requests.RequestException as e:
             logger.error(
                 f"Error fetching data: {e}. Retrying in {config.get_api_settings.get('retry_time', 10)} seconds..."
             )
+            
+            # Retry after 10 seconds
             time.sleep(
                 config.get_api_settings.get("retry_time", 10)
-            )  # Retry after 10 seconds
+            )  
 
 
 if __name__ == "__main__":
