@@ -21,7 +21,6 @@ def get_spark_session() -> SparkSession:
             (
                 "com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:0.43.1,"
                 "com.google.cloud.bigdataoss:gcs-connector:hadoop3-2.2.5,"
-                "org.postgresql:postgresql:42.7.4"
             ),
         ) \
         .config(
@@ -38,37 +37,20 @@ def get_spark_session() -> SparkSession:
 
 def transform_data(df: DataFrame) -> DataFrame:
     """
-    Transform the incoming DataFrame by parsing timestamps and filtering invalid data.
+    Transform the incoming DataFrame by parsing timestamps, filtering invalid data and performing additional transformations.
     Args:
         df (DataFrame): Input DataFrame with raw data
     Returns:
         DataFrame: Transformed DataFrame with additional columns
     """
-    return df.withColumn(
+    # Filter out records with null 'current_price' and add processing timestamp
+    df = df.withColumn(
         "last_updated_ts", 
         to_timestamp(col("last_updated"), "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     ).withColumn("processed_at", current_timestamp()) \
-     .filter(col("current_price").isNotNull())
+    .filter(col("current_price").isNotNull())
 
-def write_to_postgres(batch_df: DataFrame, batch_id: int) -> None:
-    """
-    Write each micro-batch to PostgreSQL.
-    Args:
-        batch_df (DataFrame): The micro-batch DataFrame
-        batch_id (int): The batch ID
-    """
-    jdbc_url = f"jdbc:postgresql://{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-    properties = {
-        "user": os.getenv("DB_USER"),
-        "password": os.getenv("DB_PASSWORD"),
-        "driver": "org.postgresql.Driver"
-    }
-    batch_df.write.jdbc(
-        url=jdbc_url,
-        table=config.get_db_settings.get("table_name", "crypto_data"),
-        mode="append",
-        properties=properties
-    )
+    return df
 
 def write_to_bigquery(batch_df: DataFrame, batch_id: int) -> None:
     """
@@ -77,10 +59,11 @@ def write_to_bigquery(batch_df: DataFrame, batch_id: int) -> None:
         batch_df (DataFrame): The micro-batch DataFrame
         batch_id (int): The batch ID
     """
-    batch_df.write.format("bigquery").option(
-        "table",
-        f"{config.get_cloud_settings.get('bigquery_dataset', 'crypto_dataset')}.{config.get_cloud_settings.get('bigquery_table', 'crypto_data')}"
-    ).mode("append").save()
+    batch_df.write.format("bigquery") \
+        .option("temporaryGcsBucket", config.get_cloud_settings.get("gcs_bucket_name")) \
+        .option("table", f"{config.get_cloud_settings.get('bq_dataset')}.{config.get_cloud_settings.get('bq_table')}") \
+        .mode("append") \
+        .save()
 
 def run_processor() -> None:
     """Run the streaming data processor."""
