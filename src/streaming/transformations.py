@@ -19,16 +19,21 @@ def transform_main_data(df: DataFrame) -> DataFrame:
     # Price volatility calculation (24h range as percentage of current price)
     df = df.withColumn(
         "price_volatility_24h",
-        round(((col("high_24h") - col("low_24h")) / col("current_price")) * 100, 2)
+        when(col("current_price") > 0,
+            round(((col("high_24h") - col("low_24h")) / col("current_price")) * 100, 2)
+        ).otherwise(0.0)
     )   
 
     # Price position within 24h range
+    price_range_24h = col("high_24h") - col("low_24h")
     df = df.withColumn(
         "price_position_24h",
-        round(
-            ((col("current_price") - col("low_24h")) / (col("high_24h") - col("low_24h"))) * 100,
-            2
-        )
+        when(price_range_24h > 0,
+            round(
+                ((col("current_price") - col("low_24h")) / price_range_24h) * 100,
+                2
+            )
+        ).otherwise(50.0) # If no range, set to middle (50%)
     )
 
     # Categorize price movement
@@ -45,30 +50,28 @@ def transform_main_data(df: DataFrame) -> DataFrame:
 
 def transform_rolling_average(df: DataFrame) -> DataFrame:
     """
-    Calculate 3-minute rolling average of prices for each cryptocurrency.
+    Calculate 2-minute rolling average of prices for each cryptocurrency.
     Args:
         df (DataFrame): Input DataFrame with raw data
     Returns:
         DataFrame: DataFrame with rolling average prices per coin
     """
-    # Add timestamp and filter valid data
-    df = df.withColumn(
-        "last_updated_ts", 
-        to_timestamp(col("last_updated"), "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
-    ).filter(col("current_price").isNotNull())
+    # Use the current processing time for windowing
+    df = df.withColumn("fetch_time", current_timestamp()) \
+           .filter(col("current_price").isNotNull())
 
-    # Define 3-minute tumbling window and calculate averages
-    windowed_df = df.withWatermark("last_updated_ts", "5 minutes") \
+    # Define 2-minute tumbling window and calculate averages
+    windowed_df = df.withWatermark("fetch_time", "3 minutes") \
         .groupBy(
-            window(col("last_updated_ts"), "3 minutes"),
+            window(col("fetch_time"), "2 minutes"),
             col("id"),
             col("symbol"),
             col("name")
         ).agg(
-            avg("current_price").alias("avg_price_3min"),
-            avg("market_cap").alias("avg_market_cap_3min"),
-            avg("total_volume").alias("avg_volume_3min"),
-            avg("price_change_percentage_24h").alias("avg_price_change_pct_3min"),
+            avg("current_price").alias("avg_price_2min"),
+            avg("market_cap").alias("avg_market_cap_2min"),
+            avg("total_volume").alias("avg_volume_2min"),
+            avg("price_change_percentage_24h").alias("avg_price_change_pct_2min"),
             current_timestamp().alias("processed_at")
         )
 
@@ -79,10 +82,10 @@ def transform_rolling_average(df: DataFrame) -> DataFrame:
         col("id"),
         col("symbol"),
         col("name"),
-        round(col("avg_price_3min"), 8).alias("avg_price_3min"),
-        round(col("avg_market_cap_3min"), 2).alias("avg_market_cap_3min"),
-        round(col("avg_volume_3min"), 2).alias("avg_volume_3min"),
-        round(col("avg_price_change_pct_3min"), 2).alias("avg_price_change_pct_3min"),
+        round(col("avg_price_2min"), 8).alias("avg_price_2min"),
+        round(col("avg_market_cap_2min"), 2).alias("avg_market_cap_2min"),
+        round(col("avg_volume_2min"), 2).alias("avg_volume_2min"),
+        round(col("avg_price_change_pct_2min"), 2).alias("avg_price_change_pct_2min"),
         col("processed_at")
     )
 

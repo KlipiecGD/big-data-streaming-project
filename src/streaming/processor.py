@@ -33,7 +33,7 @@ def get_spark_session() -> SparkSession:
             "spark.hadoop.google.cloud.auth.service.account.json.keyfile",
             os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
         ) \
-        .config("spark.sql.shuffle.partitions", "8") \
+        .config("spark.sql.shuffle.partitions", "4") \
         .getOrCreate()
 
 def write_main_data_to_bigquery(batch_df: DataFrame, batch_id: int) -> None:
@@ -87,7 +87,7 @@ def run_processor() -> None:
     
     logger.info("Detailed data pipeline started")
 
-    # Pipeline 2: 3-minute rolling averages per coin
+    # Pipeline 2: 2-minute rolling averages per coin
     rolling_avg_df = transform_rolling_average(raw_stream)
     
     query_rolling_avg = rolling_avg_df.writeStream \
