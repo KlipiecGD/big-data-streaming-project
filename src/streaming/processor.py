@@ -33,7 +33,7 @@ def get_spark_session() -> SparkSession:
             "spark.hadoop.google.cloud.auth.service.account.json.keyfile",
             os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
         ) \
-        .config("spark.sql.shuffle.partitions", "4") \
+        .config("spark.sql.shuffle.partitions", "2") \
         .getOrCreate()
 
 def write_main_data_to_bigquery(batch_df: DataFrame, batch_id: int) -> None:
