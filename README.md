@@ -40,6 +40,15 @@ GOOGLE_APPLICATION_CREDENTIALS="/absolute/path/to/your/credentials.json"
 
 
 3. **Config YAML**: Update `src/config/config.yaml` with your specific GCS bucket name and BigQuery dataset/table names.
+   If you don't have a GCS bucket or BigQuery dataset, create one in your Google Cloud Console.
+
+```yaml
+cloud:
+  gcs_bucket_name: "big-data-project-bucket-123456"
+  bq_dataset: "crypto_dataset"
+  bq_main_table: "crypto_data"
+  bq_rolling_avg_table: "crypto_rolling_avg"
+```
 
 ---
 
