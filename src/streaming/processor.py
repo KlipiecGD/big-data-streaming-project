@@ -67,6 +67,7 @@ def run_processor() -> None:
     # Initialize Spark session
     spark = get_spark_session()
     
+    # Define paths
     gcs_bucket = config.get_cloud_settings.get("gcs_bucket_name", "default-bucket")
     data_dir = config.get_paths_settings.get("bronze_layer_dir", "crypto_bronze")
     data_path = f"gs://{gcs_bucket}/{data_dir}/"
