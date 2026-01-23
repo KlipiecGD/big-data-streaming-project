@@ -1,7 +1,5 @@
-import json
 import requests
 import time
-import os
 
 from src.cloud_utils.save_to_gcs import save_json_to_gcs
 from src.config.config import config

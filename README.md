@@ -1,13 +1,53 @@
 # Crypto Real-Time Streaming Analytics
 
-This project implements a complete big data streaming pipeline that fetches real-time cryptocurrency data from the CoinGecko API, processes it using Apache Spark Structured Streaming, and sinks the results into Google BigQuery.
+This project implements a complete big data streaming pipeline that fetches real-time cryptocurrency data from the CoinGecko API and stores it in Google Cloud Storage. Then it cleans and enriches the data using Apache Spark Structured Streaming and save the results back to Google Cloud Storage in parquet format. Finally, it aggregates the data and sinks the results into Google BigQuery for analysis.
 
 ## Project Structure
 
-* **Producer (`src/streaming/api_producer.py`)**: Continuously fetches market data for 250 coins and saves them as local JSON files.
-* **Processor (`src/streaming/processor.py`)**: A Spark application running two parallel streaming queries to process incoming files.
-* **Transformations (`src/streaming/transformations.py`)**: Contains business logic for volatility calculation, trend categorization, and 2-minute rolling averages.
-* **Tests (`tests/`)**: Pytest suite for validating data transformations.
+```
+.
+│
+├── credentials/
+│   └── google_cloud_credentials.json   # GCP service account key - not included in repo
+│
+├── src/
+│   ├── cloud_utils/                    # Google Cloud Storage utilities
+│   │   └── save_to_gcs.py              # Upload data to GCS
+│   │
+│   ├── config/                         # Configuration management
+│   │   ├── config.py                   # Config loader
+│   │   └── config.yaml                 # Project settings (GCS, BigQuery, etc.)
+│   │
+│   ├── logging_utils/                  # Logging configuration
+│   │   └── logger.py                   # Custom logger setup
+│   │
+│   ├── schemas/                        # Data schemas
+│   │   └── crypto_schema.py            # Spark schema definitions
+│   │
+│   ├── streaming/                      # Streaming pipeline components
+│   │   ├── bronze/                     # Bronze layer (raw data ingestion)
+│   │   │   └── api_producer.py         # Fetch data from CoinGecko API
+│   │   │
+│   │   ├── gold/                       # Gold layer (aggregated analytics)
+│   │   │   ├── processor.py            # Spark streaming processor
+│   │   │   └── transformations.py      # Aggregation logic
+│   │   │
+│   │   └── silver/                     # Silver layer (cleaned & enriched)
+│   │       ├── processor.py            # Spark streaming processor
+│   │       └── transformations.py      # Data transformations
+│   │
+│   └── src/
+│
+├── tests/
+│   ├── data/
+│   │   └── sample_data.py              # Sample data for testing
+│   │
+│   └── test_transformations.py         # Unit tests for transformations
+│
+├── README.md                           # Project documentation
+├── pytest.ini                          # Pytest configuration
+└── requirementes.txt                   # Python dependencies
+```
 
 ---
 
@@ -56,25 +96,31 @@ To run the full pipeline, you need to execute the producer and processor in sepa
 The producer must run first to create the initial data files for Spark to monitor.
 
 ```bash
-python -m src.streaming.api_producer
+python -m src.streaming.bronze.api_producer
 ```
 
-It will fetch data every 60 seconds and save it to the `data/` directory.
+It will fetch data every 60 seconds and save it to the Google Cloud Storage bucket specified in the config.
 
-### Step 2: Start the Spark Processor
+### Step 2: Start the Silver Layer Spark Processor
 
 In a new terminal window, start the streaming engine:
 
 ```bash
-python -m src.streaming.processor
+python -m src.streaming.silver.processor
 ```
 
-This script initializes a Spark session with necessary BigQuery and GCS connectors and starts two pipelines:
+This script initializes a Spark session with necessary configurations, reads the raw data from GCS, applies transformations, and writes the processed data to Google Cloud Storage in parquet format.
 
-1. **Main Pipeline**: Detailed coin analytics saved to your main BigQuery table.
-2. **Rolling Average Pipeline**: Calculates averages over a 2-minute window and saves them to a separate table.
+### Step 3: Start the Gold Layer Spark Processor
 
-### Step 3: Run Unit Tests
+In a new terminal window, start the streaming engine:
+
+```bash
+python -m src.streaming.gold.processor
+```
+This script initializes a Spark session with necessary configurations, reads the processed data from GCS, applies aggregations, and writes the final results to Google BigQuery.
+
+### Step 4: Run Unit Tests
 
 To verify that the transformations are calculating correctly:
 
@@ -90,6 +136,6 @@ The test suite validates logic for filtering null prices, calculating volatility
 
 ### Cleaning Folders
 
-* **Data Folder**: If you want to ignore old market data, clear the `data/` directory.
-* **Checkpoints**: If you modify the transformation logic or schema in `transformations.py`, you **must** delete the `checkpoints/` directory before restarting the processor to avoid state incompatibility errors.
+* **Data Folder**: If you want to ignore old market data, delete the contents of the GCS data folder specified in your config.
+* **Checkpoints**: If you modify the transformation logic or schema and want to reset the streaming state, delete the checkpoint folders in GCS.
 

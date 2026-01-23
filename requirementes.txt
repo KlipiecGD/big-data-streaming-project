@@ -8,6 +8,13 @@ debugpy==1.8.19
 decorator==5.2.1
 dotenv==0.9.9
 executing==2.2.1
+google-api-core==2.29.0
+google-auth==2.47.0
+google-cloud-core==2.5.0
+google-cloud-storage==3.8.0
+google-crc32c==1.8.0
+google-resumable-media==2.8.0
+googleapis-common-protos==1.72.0
 idna==3.11
 iniconfig==2.3.0
 ipykernel==7.1.0
@@ -24,10 +31,14 @@ pexpect==4.9.0
 platformdirs==4.5.1
 pluggy==1.6.0
 prompt_toolkit==3.0.52
+proto-plus==1.27.0
+protobuf==6.33.4
 psutil==7.2.1
 ptyprocess==0.7.0
 pure_eval==0.2.3
 py4j==0.10.9.9
+pyasn1==0.6.2
+pyasn1_modules==0.4.2
 Pygments==2.19.2
 pyspark==4.1.1
 pytest==9.0.2
@@ -36,6 +47,7 @@ python-dotenv==1.2.1
 PyYAML==6.0.3
 pyzmq==27.1.0
 requests==2.32.5
+rsa==4.9.1
 ruff==0.14.13
 six==1.17.0
 stack-data==0.6.3

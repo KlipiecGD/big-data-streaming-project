@@ -2,7 +2,7 @@ import pytest
 from typing import Generator
 from pyspark.sql import SparkSession
 from src.schemas.crypto_schema import CRYPTO_PRICES_SCHEMA
-from src.streaming.transformations import transform_main_data, transform_rolling_average
+from src.streaming.gold.transformations import transform_main_data, transform_rolling_average
 from tests.data.sample_data import MAIN_DATA, AVERAGES_DATA, ZERO_PRICE_DATA, ZERO_RANGE_DATA
 
 @pytest.fixture(scope="session")

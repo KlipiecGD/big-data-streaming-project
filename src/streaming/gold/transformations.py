@@ -3,18 +3,18 @@ from pyspark.sql.functions import col, to_timestamp, current_timestamp, round, w
 
 def transform_main_data(df: DataFrame) -> DataFrame:
     """
-    Transform the incoming DataFrame by parsing timestamps, filtering invalid data and performing additional transformations.
+    Transform the incoming DataFrame by parsing timestamps and performing additional transformations.
+    Expects DataFrame from silver layer (already filtered for nulls and has processed_at + date).
     Args:
-        df (DataFrame): Input DataFrame with raw data
+        df (DataFrame): Input DataFrame from silver layer
     Returns:
         DataFrame: Transformed DataFrame with additional columns
     """
-    # Filter out records with null 'current_price' and add processing timestamp
+    # Parse last_updated timestamp
     df = df.withColumn(
         "last_updated_ts", 
         to_timestamp(col("last_updated"), "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
-    ).withColumn("processed_at", current_timestamp()) \
-    .filter(col("current_price").isNotNull())
+    )
 
     # Price volatility calculation (24h range as percentage of current price)
     df = df.withColumn(
@@ -51,19 +51,17 @@ def transform_main_data(df: DataFrame) -> DataFrame:
 def transform_rolling_average(df: DataFrame) -> DataFrame:
     """
     Calculate 2-minute rolling average of prices for each cryptocurrency.
+    Expects DataFrame from silver layer (already filtered for nulls).
     Args:
-        df (DataFrame): Input DataFrame with raw data
+        df (DataFrame): Input DataFrame from silver layer
     Returns:
         DataFrame: DataFrame with rolling average prices per coin
     """
-    # Use the current processing time for windowing
-    df = df.withColumn("fetch_time", current_timestamp()) \
-           .filter(col("current_price").isNotNull())
-
+    # Use the processed_at from silver layer for windowing
     # Define 2-minute tumbling window and calculate averages
-    windowed_df = df.withWatermark("fetch_time", "3 minutes") \
+    windowed_df = df.withWatermark("processed_at", "3 minutes") \
         .groupBy(
-            window(col("fetch_time"), "2 minutes"),
+            window(col("processed_at"), "2 minutes"),
             col("id"),
             col("symbol"),
             col("name")
@@ -72,7 +70,7 @@ def transform_rolling_average(df: DataFrame) -> DataFrame:
             avg("market_cap").alias("avg_market_cap_2min"),
             avg("total_volume").alias("avg_volume_2min"),
             avg("price_change_percentage_24h").alias("avg_price_change_pct_2min"),
-            current_timestamp().alias("processed_at")
+            current_timestamp().alias("aggregated_at")
         )
 
     # Flatten window structure and round values
@@ -86,7 +84,7 @@ def transform_rolling_average(df: DataFrame) -> DataFrame:
         round(col("avg_market_cap_2min"), 2).alias("avg_market_cap_2min"),
         round(col("avg_volume_2min"), 2).alias("avg_volume_2min"),
         round(col("avg_price_change_pct_2min"), 2).alias("avg_price_change_pct_2min"),
-        col("processed_at")
+        col("aggregated_at")
     )
 
     return rolling_avg_df

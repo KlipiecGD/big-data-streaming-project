@@ -4,11 +4,12 @@ from dotenv import load_dotenv
 from pyspark.sql import SparkSession, DataFrame
 from src.config.config import config
 from src.logging_utils.logger import logger
-from src.schemas.crypto_schema import CRYPTO_PRICES_SCHEMA
+from src.schemas.crypto_schema import CRYPTO_SILVER_SCHEMA
 
-from src.streaming.transformations import transform_main_data, transform_rolling_average
+from src.streaming.gold.transformations import transform_main_data, transform_rolling_average
 
 load_dotenv()
+
 
 def get_spark_session() -> SparkSession:
     """
@@ -16,7 +17,7 @@ def get_spark_session() -> SparkSession:
     Returns:
         SparkSession: Configured Spark session
     """
-    return SparkSession.builder.appName("CryptoRealTimeProcessor") \
+    return SparkSession.builder.appName("CryptoGoldLayerProcessor") \
         .config(
             "spark.jars.packages",
             (
@@ -33,8 +34,9 @@ def get_spark_session() -> SparkSession:
             "spark.hadoop.google.cloud.auth.service.account.json.keyfile",
             os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
         ) \
-        .config("spark.sql.shuffle.partitions", "2") \
+        .config("spark.sql.shuffle.partitions", "1") \
         .getOrCreate()
+
 
 def write_main_data_to_bigquery(batch_df: DataFrame, batch_id: int) -> None:
     """
@@ -49,6 +51,7 @@ def write_main_data_to_bigquery(batch_df: DataFrame, batch_id: int) -> None:
         .mode("append") \
         .save()
     
+
 def write_rolling_avg_to_bigquery(batch_df: DataFrame, batch_id: int) -> None:
     """
     Write each micro-batch of rolling averages to Google BigQuery.
@@ -62,28 +65,28 @@ def write_rolling_avg_to_bigquery(batch_df: DataFrame, batch_id: int) -> None:
         .mode("append") \
         .save()
 
-def run_processor() -> None:
-    """Run the streaming data processor."""
+
+def run_gold_processor() -> None:
+    """Run the gold layer processor that reads from silver and writes to BigQuery."""
     # Initialize Spark session
     spark = get_spark_session()
     
     # Define paths
     gcs_bucket = config.get_cloud_settings.get("gcs_bucket_name", "default-bucket")
-    data_dir = config.get_paths_settings.get("bronze_layer_dir", "crypto_bronze")
-    data_path = f"gs://{gcs_bucket}/{data_dir}/"
-    checkpoint_dir = f"gs://{gcs_bucket}/{config.get_paths_settings.get('checkpoint_dir', 'checkpoints/')}"
+    silver_dir = config.get_paths_settings.get("silver_layer_dir", "crypto_silver")
+    silver_path = f"gs://{gcs_bucket}/{silver_dir}/"
+    checkpoint_dir = f"gs://{gcs_bucket}/{config.get_paths_settings.get('checkpoint_dir', 'checkpoints')}/gold/"
 
-    logger.info(f"Starting streaming data processor reading from {data_path}")
+    logger.info(f"Starting gold layer processor reading from {silver_path}")
     logger.info(f"Using checkpoint directory: {checkpoint_dir}")
 
-    # Read streaming data
-    raw_stream = spark.readStream \
-        .schema(CRYPTO_PRICES_SCHEMA) \
-        .option("multiLine", "true") \
-        .json(data_path)
+    # Read streaming data from silver layer (Parquet)
+    silver_stream = spark.readStream \
+        .schema(CRYPTO_SILVER_SCHEMA) \
+        .parquet(silver_path)
 
     # Pipeline 1: Detailed per-coin analytics 
-    transformed_df = transform_main_data(raw_stream)
+    transformed_df = transform_main_data(silver_stream)
     
     query_detailed = transformed_df.writeStream \
         .foreachBatch(write_main_data_to_bigquery) \
@@ -91,10 +94,10 @@ def run_processor() -> None:
         .outputMode("append") \
         .start()
     
-    logger.info("Detailed data pipeline started")
+    logger.info("Gold layer - detailed data pipeline started")
 
     # Pipeline 2: 2-minute rolling averages per coin
-    rolling_avg_df = transform_rolling_average(raw_stream)
+    rolling_avg_df = transform_rolling_average(silver_stream)
     
     query_rolling_avg = rolling_avg_df.writeStream \
         .foreachBatch(write_rolling_avg_to_bigquery) \
@@ -102,11 +105,12 @@ def run_processor() -> None:
         .outputMode("append") \
         .start()
     
-    logger.info("Rolling average pipeline started")
+    logger.info("Gold layer - rolling average pipeline started")
 
     # Wait for both queries to terminate
     query_detailed.awaitTermination()
     query_rolling_avg.awaitTermination()
 
+
 if __name__ == "__main__":
-    run_processor()
+    run_gold_processor()
