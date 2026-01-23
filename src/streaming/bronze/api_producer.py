@@ -11,7 +11,9 @@ def fetch_crypto_data() -> None:
     Fetch cryptocurrency data from the API and save it Google Cloud Storage.
     """
 
-    url = config.get_api_settings.get("url", "https://api.coingecko.com/api/v3/coins/markets")
+    url = config.get_api_settings.get(
+        "url", "https://api.coingecko.com/api/v3/coins/markets"
+    )
 
     gcs_bucket_name = config.get_cloud_settings.get("gcs_bucket_name", "default-bucket")
     gcs_folder = config.get_paths_settings.get("bronze_layer_dir", "crypto_bronze")
@@ -20,7 +22,9 @@ def fetch_crypto_data() -> None:
     while True:
         try:
             # Make the API request
-            logger.info(f"Fetching data from {url} with params {config.get_api_connection_params}")
+            logger.info(
+                f"Fetching data from {url} with params {config.get_api_connection_params}"
+            )
             response = requests.get(url, params=config.get_api_connection_params)
 
             # Raise an error for bad responses
@@ -34,19 +38,15 @@ def fetch_crypto_data() -> None:
 
             logger.info(f"Data saved successfully to GCS at {filename}.")
             # Fetch data every 60 seconds
-            time.sleep(
-                config.get_api_settings.get("wait_time", 60)
-            )  
+            time.sleep(config.get_api_settings.get("wait_time", 60))
 
         except requests.RequestException as e:
             logger.error(
                 f"Error fetching data: {e}. Retrying in {config.get_api_settings.get('retry_time', 10)} seconds..."
             )
-            
+
             # Retry after 10 seconds
-            time.sleep(
-                config.get_api_settings.get("retry_time", 10)
-            )  
+            time.sleep(config.get_api_settings.get("retry_time", 10))
 
 
 if __name__ == "__main__":

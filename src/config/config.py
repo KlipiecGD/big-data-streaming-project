@@ -63,12 +63,12 @@ class Config:
         """Get API parameters from config."""
         api_settings = self.get_api_settings
         return api_settings.get("params", {})
-    
+
     @property
     def get_cloud_settings(self) -> dict:
         """Get cloud settings from config."""
         return self._config.get("cloud", {})
-    
+
     @property
     def get_paths_settings(self) -> dict:
         """Get paths settings from config."""

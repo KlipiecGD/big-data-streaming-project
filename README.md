@@ -35,18 +35,20 @@ This project implements a complete big data streaming pipeline that fetches real
 │   │   └── silver/                     # Silver layer (cleaned & enriched)
 │   │       ├── processor.py            # Spark streaming processor
 │   │       └── transformations.py      # Data transformations
-│   │
-│   └── src/
 │
 ├── tests/
 │   ├── data/
-│   │   └── sample_data.py              # Sample data for testing
-│   │
-│   └── test_transformations.py         # Unit tests for transformations
+│   │   ├── bronze_data.py              # Sample bronze layer data for testing
+│   │   └── silver_data.py              # Sample silver layer data for testing
+│   ├── test_gold/
+│   │   └── test_transformations.py     # Gold layer tests
+│   ├── test_silver/
+│   │   └── test_transformations.py     # Silver layer tests
+│   └── conftest.py                     # Pytest fixtures (optional)
 │
 ├── README.md                           # Project documentation
 ├── pytest.ini                          # Pytest configuration
-└── requirementes.txt                   # Python dependencies
+└── requirements.txt                    # Python dependencies
 ```
 
 ---
