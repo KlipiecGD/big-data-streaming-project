@@ -3,26 +3,20 @@ import requests
 import time
 import os
 
+from src.cloud_utils.save_to_gcs import save_json_to_gcs
 from src.config.config import config
 from src.logging_utils.logger import logger
 
 
-def fetch_crypto_data(
-    url: str = config.get_api_settings.get(
-        "url", "https://api.coingecko.com/api/v3/coins/markets"
-    ),
-    save_path: str = config.get_paths.get("data_dir", "data"),
-) -> None:
+def fetch_crypto_data() -> None:
     """
-    Fetch cryptocurrency data from the API and save it locally.
-    Args:
-        url (str): API endpoint URL
-        save_path (str): Directory to save the fetched data
+    Fetch cryptocurrency data from the API and save it Google Cloud Storage.
     """
 
-    # Ensure the save directory exists
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
+    url = config.get_api_settings.get("url", "https://api.coingecko.com/api/v3/coins/markets")
+
+    gcs_bucket_name = config.get_cloud_settings.get("gcs_bucket_name", "default-bucket")
+    gcs_folder = config.get_paths_settings.get("bronze_layer_dir", "crypto_bronze")
 
     # Fetching data
     while True:
@@ -37,15 +31,10 @@ def fetch_crypto_data(
 
             # Save the data to a JSON file
             data = response.json()
-            filename = f"crypto_data_{int(time.time())}.json"
-            save_path_full = os.path.join(save_path, filename)
-            logger.info(f"Saving data to {save_path_full}")
+            filename = f"{gcs_folder}/crypto_data_{int(time.time())}.json"
+            save_json_to_gcs(data, gcs_bucket_name, filename)
 
-            with open(save_path_full, "w") as f:
-                json.dump(data, f, indent=2)
-
-            logger.info("Data saved successfully.")
-
+            logger.info(f"Data saved successfully to GCS at {filename}.")
             # Fetch data every 60 seconds
             time.sleep(
                 config.get_api_settings.get("wait_time", 60)

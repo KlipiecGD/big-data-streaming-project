@@ -66,10 +66,15 @@ def run_processor() -> None:
     """Run the streaming data processor."""
     # Initialize Spark session
     spark = get_spark_session()
-    # Get data directory from config
-    data_path = config.get_paths.get("data_dir", "data")
-    logger.info(f"Starting streaming processor. Monitoring data at: {data_path}")
     
+    gcs_bucket = config.get_cloud_settings.get("gcs_bucket_name", "default-bucket")
+    data_dir = config.get_paths_settings.get("bronze_layer_dir", "crypto_bronze")
+    data_path = f"gs://{gcs_bucket}/{data_dir}/"
+    checkpoint_dir = f"gs://{gcs_bucket}/{config.get_paths_settings.get('checkpoint_dir', 'checkpoints/')}"
+
+    logger.info(f"Starting streaming data processor reading from {data_path}")
+    logger.info(f"Using checkpoint directory: {checkpoint_dir}")
+
     # Read streaming data
     raw_stream = spark.readStream \
         .schema(CRYPTO_PRICES_SCHEMA) \
@@ -81,7 +86,7 @@ def run_processor() -> None:
     
     query_detailed = transformed_df.writeStream \
         .foreachBatch(write_main_data_to_bigquery) \
-        .option("checkpointLocation", os.path.join(config.get_paths.get("checkpoint_dir", "checkpoints/"), "main/")) \
+        .option("checkpointLocation", os.path.join(checkpoint_dir, "main/")) \
         .outputMode("append") \
         .start()
     
@@ -92,7 +97,7 @@ def run_processor() -> None:
     
     query_rolling_avg = rolling_avg_df.writeStream \
         .foreachBatch(write_rolling_avg_to_bigquery) \
-        .option("checkpointLocation", os.path.join(config.get_paths.get("checkpoint_dir", "checkpoints/"), "rolling_avg/")) \
+        .option("checkpointLocation", os.path.join(checkpoint_dir, "rolling_avg/")) \
         .outputMode("append") \
         .start()
     

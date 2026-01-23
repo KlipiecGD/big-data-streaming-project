@@ -33,13 +33,17 @@ pip install -r requirements.txt
 ### 3. Configuration
 
 1. **Google Cloud Credentials**: Place your service account JSON key in the project root (e.g., `credentials.json`).
-2. **Environment Variables**: Create a `.env` file in the project root:
+2. Authenticate with Google Cloud:
+```bash
+gcloud auth login
+```
+3. **Environment Variables**: Create a `.env` file in the project root:
 ```env
 GOOGLE_APPLICATION_CREDENTIALS="/absolute/path/to/your/credentials.json"
 ```
 
 
-3. **Config YAML**: Update `src/config/config.yaml` with relevant names and paths. If you don't have a GCS bucket or BigQuery dataset, create one in your Google Cloud Console.
+4. **Config YAML**: Update `src/config/config.yaml` with relevant names and paths. If you don't have a GCS bucket or BigQuery dataset, create one in your Google Cloud Console.
 
 ---
 
