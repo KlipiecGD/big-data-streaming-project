@@ -1,21 +1,21 @@
-from dotenv import load_dotenv
-
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, current_timestamp, to_date
 
-load_dotenv()
+
 def clean_bronze_data(df: DataFrame) -> DataFrame:
     """
-    Clean the raw DataFrame by removing records with null 'id', 'symbol' or 'current_price', add 'processed_at' timestamp and
+    Clean the raw DataFrame by removing records with any null values.
+    Also adds 'processed_at' timestamp and 'date' for partitioning.
+    
     Args:
-        df (DataFrame): Input DataFrame with raw data
+        df (DataFrame): Input DataFrame with raw data from bronze layer
+        
     Returns:
-        DataFrame: Cleaned DataFrame
+        DataFrame: Cleaned DataFrame ready for silver layer storage (only complete records)
     """
-    cleaned_df = df.filter(
-        col("id").isNotNull() & 
-        col("symbol").isNotNull() & 
-        col("current_price").isNotNull()
-    ).withColumn("processed_at", current_timestamp()).withColumn("date", to_date(col("processed_at")))
-
+    # Drop any rows that contain null values in any column
+    cleaned_df = df.dropna() \
+        .withColumn("processed_at", current_timestamp()) \
+        .withColumn("date", to_date(col("processed_at")))
+    
     return cleaned_df
