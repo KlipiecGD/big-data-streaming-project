@@ -39,16 +39,7 @@ GOOGLE_APPLICATION_CREDENTIALS="/absolute/path/to/your/credentials.json"
 ```
 
 
-3. **Config YAML**: Update `src/config/config.yaml` with your specific GCS bucket name and BigQuery dataset/table names.
-   If you don't have a GCS bucket or BigQuery dataset, create one in your Google Cloud Console.
-
-```yaml
-cloud:
-  gcs_bucket_name: "big-data-project-bucket-123456"
-  bq_dataset: "crypto_dataset"
-  bq_main_table: "crypto_data"
-  bq_rolling_avg_table: "crypto_rolling_avg"
-```
+3. **Config YAML**: Update `src/config/config.yaml` with relevant names and paths. If you don't have a GCS bucket or BigQuery dataset, create one in your Google Cloud Console.
 
 ---
 
@@ -98,11 +89,3 @@ The test suite validates logic for filtering null prices, calculating volatility
 * **Data Folder**: If you want to ignore old market data, clear the `data/` directory.
 * **Checkpoints**: If you modify the transformation logic or schema in `transformations.py`, you **must** delete the `checkpoints/` directory before restarting the processor to avoid state incompatibility errors.
 
-### Configuration Changes
-In `src/config/config.yaml`, you can adjust:
-* GCS bucket name
-* BigQuery dataset and table names
-* File paths for data and checkpoints
-* Streaming intervals
-* CoinGecko API parameters (e.g., coins to track, number of coins)
-* Other relevant settings

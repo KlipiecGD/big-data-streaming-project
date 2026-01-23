@@ -1,22 +1,23 @@
+# API configuration for CoinGecko
 api:
-  url: "https://api.coingecko.com/api/v3/coins/markets"
-  wait_time: 60
-  retry_time: 10
+  url: "https://api.coingecko.com/api/v3/coins/markets" # Endpoint for market data
+  wait_time: 60 # Time to wait between API calls in seconds
+  retry_time: 10 # Time to wait before retrying a failed API call in seconds
+  # Parameters for the API request
   params: 
-    vs_currency: "usd"
-    order: "market_cap_desc"
-    per_page: 250
-    page: 1
+    vs_currency: "usd" # Currency to compare against
+    order: "market_cap_desc" # Order by market cap descending
+    per_page: 250 # Number of coins per page
+    page: 1 # Page number
 
+# Path configurations
 paths:
-  data_dir: "data"
-  checkpoint_dir: "checkpoints"
+  data_dir: "data" # Directory to store raw data
+  checkpoint_dir: "checkpoints" # Directory for Spark checkpoints
 
-database:
-  table_name: "crypto_data"
-
+# Cloud configuration for GCS and BigQuery
 cloud:
-  gcs_bucket_name: "big-data-project-bucket-123456"
-  bq_dataset: "crypto_dataset"
-  bq_main_table: "crypto_data"
-  bq_rolling_avg_table: "crypto_rolling_avg"
+  gcs_bucket_name: "big-data-project-bucket-123456" # GCS bucket name
+  bq_dataset: "crypto_dataset" # BigQuery dataset name
+  bq_main_table: "crypto_data" # BigQuery main table name
+  bq_rolling_avg_table: "crypto_rolling_avg" # BigQuery rolling average table name
