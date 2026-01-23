@@ -11,7 +11,7 @@ def clean_bronze_data(df: DataFrame) -> DataFrame:
         df (DataFrame): Input DataFrame with raw data from bronze layer
         
     Returns:
-        DataFrame: Cleaned DataFrame ready for silver layer storage (only complete records)
+        DataFrame: Cleaned DataFrame ready for silver layer storage 
     """
     # Drop any rows that contain null values in any column
     cleaned_df = df.dropna() \
