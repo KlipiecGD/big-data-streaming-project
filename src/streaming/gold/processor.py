@@ -38,6 +38,8 @@ def get_spark_session() -> SparkSession:
             "spark.hadoop.google.cloud.auth.service.account.json.keyfile",
             os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
         )
+        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+        .config("spark.kryo.registrationRequired", "false")
         .config("spark.sql.shuffle.partitions", "1")
         .getOrCreate()
     )

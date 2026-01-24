@@ -45,13 +45,14 @@ This project implements a complete big data streaming pipeline that fetches real
 │   └── test_silver/
 │       └── test_transformations.py     # Silver layer tests
 │
+├── optimization_documentation.md       # Performance optimizations documentation
+│
 ├── README.md                           # Project documentation
 ├── pytest.ini                          # Pytest configuration
 └── requirements.txt                    # Python dependencies
 ```
-
 ---
-
+    
 ## Local Environment Setup
 
 ### 1. Prerequisites

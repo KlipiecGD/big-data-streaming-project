@@ -19,6 +19,8 @@ def spark():
     spark_session = (
         SparkSession.builder.appName("TestSilverTransformations")
         .master("local[2]")
+        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+        .config("spark.kryo.registrationRequired", "false")
         .config("spark.sql.shuffle.partitions", "1")
         .getOrCreate()
     )
