@@ -95,6 +95,7 @@ def run_gold_processor() -> None:
 
     query_detailed = (
         transformed_df.writeStream.foreachBatch(write_main_data_to_bigquery)
+        .trigger(processingTime="1 minute")
         .option("checkpointLocation", os.path.join(checkpoint_dir, "main/"))
         .outputMode("append")
         .start()
@@ -107,6 +108,7 @@ def run_gold_processor() -> None:
 
     query_rolling_avg = (
         rolling_avg_df.writeStream.foreachBatch(write_rolling_avg_to_bigquery)
+        .trigger(processingTime="1 minute")
         .option("checkpointLocation", os.path.join(checkpoint_dir, "rolling_avg/"))
         .outputMode("append")
         .start()

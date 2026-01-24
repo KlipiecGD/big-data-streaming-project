@@ -71,6 +71,7 @@ def run_silver_processor() -> None:
     # Write to silver layer as Parquet, partitioned by date
     query = (
         cleaned_stream.writeStream.format("parquet")
+        .trigger(processingTime="1 minute") 
         .option("path", silver_path)
         .option("checkpointLocation", checkpoint_dir)
         .outputMode("append")
