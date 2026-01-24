@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime
+from datetime import datetime, date
 from pyspark.sql import SparkSession
 from pyspark.sql.types import DateType, TimestampType
 
@@ -62,6 +62,12 @@ class TestSilverCleaning:
         for row in result:
             assert row["processed_at"] is not None, "processed_at should not be null"
             assert row["date"] is not None, "date should not be null"
+
+        # Verify date is extracted from last_updated (all records have same last_updated date)
+        for row in result:
+            assert row["date"] == date(2026, 1, 15), (
+                "date should be extracted from last_updated timestamp"
+            )
 
         # Verify original data integrity
         assert result[0]["id"] == "bitcoin", "First record should be bitcoin"
@@ -147,8 +153,8 @@ class TestSilverCleaning:
                 "processed_at year should be 2026 or later"
             )
 
-    def test_date_partition_column(self, spark: SparkSession):
-        """Test that date column is properly formatted for partitioning."""
+    def test_date_partition_column_from_last_updated(self, spark: SparkSession):
+        """Test that date column is extracted from last_updated timestamp."""
         # Create DataFrame from valid bronze records
         df = spark.createDataFrame(VALID_BRONZE_RECORDS, schema=CRYPTO_BRONZE_SCHEMA)
 
@@ -158,12 +164,17 @@ class TestSilverCleaning:
         # Collect results
         result = cleaned_df.collect()
 
-        # Check date format
+        # Check date format and that it matches last_updated
         for row in result:
             # Date should be a date object (not datetime)
             assert hasattr(row["date"], "year"), "date should have year attribute"
             assert hasattr(row["date"], "month"), "date should have month attribute"
             assert hasattr(row["date"], "day"), "date should have day attribute"
+            
+            # Verify date matches the date from last_updated (2026-01-15)
+            assert row["date"] == date(2026, 1, 15), (
+                "date should match the date portion of last_updated"
+            )
 
     def test_no_data_loss_for_valid_records(self, spark: SparkSession):
         """Test that all columns from bronze are preserved in silver."""

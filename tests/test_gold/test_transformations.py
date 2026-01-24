@@ -12,8 +12,8 @@ from tests.data.silver_data import (
     STRONG_DOWN_SILVER_RECORDS,
     STABLE_SILVER_RECORDS,
     NO_RANGE_SILVER_RECORDS,
-    ROLLING_AVG_SILVER_RECORDS,
     ZERO_PRICE_SILVER_RECORDS,
+    ROLLING_AVG_SILVER_RECORDS,
 )
 
 
@@ -213,7 +213,7 @@ class TestMainDataTransformations:
 
 
 class TestRollingAverageTransformations:
-    """Test suite for gold layer rolling average transformations."""
+    """Test suite for gold layer rolling average transformations using last_updated."""
 
     def test_rolling_average_grouping(self, spark: SparkSession):
         """Test that rolling averages are calculated per coin."""

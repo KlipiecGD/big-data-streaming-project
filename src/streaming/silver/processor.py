@@ -62,7 +62,6 @@ def run_silver_processor() -> None:
     # Read streaming data from bronze layer
     raw_stream = (
         spark.readStream.schema(CRYPTO_BRONZE_SCHEMA)
-        .option("multiLine", "true")
         .json(bronze_path)
     )
 

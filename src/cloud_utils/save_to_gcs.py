@@ -18,7 +18,10 @@ def save_json_to_gcs(data: dict, bucket_name: str, destination_blob_name: str) -
         bucket = storage_client.bucket(bucket_name)
         blob = bucket.blob(destination_blob_name)
 
-        blob.upload_from_string(data=json.dumps(data), content_type="application/json")
+        # Convert list of records to newline-delimited JSON format for better streaming support
+        ndjson_data = '\n'.join(json.dumps(record) for record in data)
+
+        blob.upload_from_string(data=ndjson_data, content_type="application/json")
 
         logger.info(
             f"Json uploaded to {destination_blob_name} in bucket {bucket_name}."

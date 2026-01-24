@@ -24,17 +24,17 @@ This project implements a complete big data streaming pipeline that fetches real
 │   ├── schemas/                        # Data schemas
 │   │   └── crypto_schema.py            # Spark schema definitions
 │   │
-│   ├── streaming/                      # Streaming pipeline components
-│   │   ├── bronze/                     # Bronze layer (raw data ingestion)
-│   │   │   └── api_producer.py         # Fetch data from CoinGecko API
-│   │   │
-│   │   ├── gold/                       # Gold layer (aggregated analytics)
-│   │   │   ├── processor.py            # Spark streaming processor
-│   │   │   └── transformations.py      # Aggregation logic
-│   │   │
-│   │   └── silver/                     # Silver layer (cleaned & enriched)
-│   │       ├── processor.py            # Spark streaming processor
-│   │       └── transformations.py      # Data transformations
+│   └── streaming/                      # Streaming pipeline components
+│       ├── bronze/                     # Bronze layer (raw data ingestion)
+│       │   └── api_producer.py         # Fetch data from CoinGecko API
+│       │
+│       ├── gold/                       # Gold layer (aggregated analytics)
+│       │   ├── processor.py            # Spark streaming processor
+│       │   └── transformations.py      # Aggregation logic
+│       │
+│       └── silver/                     # Silver layer (cleaned & enriched)
+│           ├── processor.py            # Spark streaming processor
+│           └── transformations.py      # Data transformations
 │
 ├── tests/
 │   ├── data/
@@ -42,9 +42,8 @@ This project implements a complete big data streaming pipeline that fetches real
 │   │   └── silver_data.py              # Sample silver layer data for testing
 │   ├── test_gold/
 │   │   └── test_transformations.py     # Gold layer tests
-│   ├── test_silver/
-│   │   └── test_transformations.py     # Silver layer tests
-│   └── conftest.py                     # Pytest fixtures (optional)
+│   └── test_silver/
+│       └── test_transformations.py     # Silver layer tests
 │
 ├── README.md                           # Project documentation
 ├── pytest.ini                          # Pytest configuration

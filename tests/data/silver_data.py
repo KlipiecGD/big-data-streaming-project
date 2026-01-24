@@ -132,7 +132,7 @@ NO_RANGE_SILVER_RECORDS = [
     }
 ]
 
-# Records for rolling average testing - multiple timestamps
+# Records for rolling average testing - multiple timestamps based on last_updated
 ROLLING_AVG_SILVER_RECORDS = [
     # First batch at 10:30
     {
@@ -148,7 +148,7 @@ ROLLING_AVG_SILVER_RECORDS = [
         "price_change_24h": 500.0,
         "price_change_percentage_24h": 1.12,
         "last_updated": "2026-01-15T10:30:00.000Z",
-        "processed_at": datetime(2026, 1, 15, 10, 30, 0),
+        "processed_at": datetime(2026, 1, 15, 10, 30, 5),
         "date": date(2026, 1, 15),
     },
     # Second batch at 10:30 (same window)
@@ -165,7 +165,7 @@ ROLLING_AVG_SILVER_RECORDS = [
         "price_change_24h": 600.0,
         "price_change_percentage_24h": 1.32,
         "last_updated": "2026-01-15T10:30:30.000Z",
-        "processed_at": datetime(2026, 1, 15, 10, 30, 30),
+        "processed_at": datetime(2026, 1, 15, 10, 30, 35),
         "date": date(2026, 1, 15),
     },
     # Third batch at 10:31 (same window)
@@ -182,7 +182,7 @@ ROLLING_AVG_SILVER_RECORDS = [
         "price_change_24h": 550.0,
         "price_change_percentage_24h": 1.22,
         "last_updated": "2026-01-15T10:31:00.000Z",
-        "processed_at": datetime(2026, 1, 15, 10, 31, 0),
+        "processed_at": datetime(2026, 1, 15, 10, 31, 5),
         "date": date(2026, 1, 15),
     },
     # Different coin in same window
@@ -199,7 +199,7 @@ ROLLING_AVG_SILVER_RECORDS = [
         "price_change_24h": 50.0,
         "price_change_percentage_24h": 2.04,
         "last_updated": "2026-01-15T10:30:15.000Z",
-        "processed_at": datetime(2026, 1, 15, 10, 30, 15),
+        "processed_at": datetime(2026, 1, 15, 10, 30, 20),
         "date": date(2026, 1, 15),
     },
     {
@@ -215,7 +215,7 @@ ROLLING_AVG_SILVER_RECORDS = [
         "price_change_24h": 60.0,
         "price_change_percentage_24h": 2.41,
         "last_updated": "2026-01-15T10:31:30.000Z",
-        "processed_at": datetime(2026, 1, 15, 10, 31, 30),
+        "processed_at": datetime(2026, 1, 15, 10, 31, 35),
         "date": date(2026, 1, 15),
     },
 ]

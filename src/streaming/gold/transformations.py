@@ -13,7 +13,6 @@ from pyspark.sql.functions import (
 def transform_main_data(df: DataFrame) -> DataFrame:
     """
     Transform the incoming DataFrame by parsing timestamps and performing additional transformations.
-    Expects DataFrame from silver layer (already filtered for nulls and has processed_at + date).
     Args:
         df (DataFrame): Input DataFrame from silver layer
     Returns:
@@ -60,18 +59,22 @@ def transform_main_data(df: DataFrame) -> DataFrame:
 def transform_rolling_average(df: DataFrame) -> DataFrame:
     """
     Calculate 2-minute rolling average of prices for each cryptocurrency.
-    Expects DataFrame from silver layer (already filtered for nulls).
     Args:
         df (DataFrame): Input DataFrame from silver layer
     Returns:
         DataFrame: DataFrame with rolling average prices per coin
     """
-    # Use the processed_at from silver layer for windowing
+    # Parse last_updated to timestamp for windowing
+    df = df.withColumn(
+        "last_updated_ts",
+        to_timestamp(col("last_updated"), "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"),
+    )
+
     # Define 2-minute tumbling window and calculate averages
     windowed_df = (
-        df.withWatermark("processed_at", "3 minutes")
+        df.withWatermark("last_updated_ts", "3 minutes")
         .groupBy(
-            window(col("processed_at"), "2 minutes"),
+            window(col("last_updated_ts"), "2 minutes"),
             col("id"),
             col("symbol"),
             col("name"),
