@@ -52,7 +52,7 @@ This project implements a complete big data streaming pipeline that fetches real
 └── requirements.txt                    # Python dependencies
 ```
 ---
-    
+
 ## Local Environment Setup
 
 ### 1. Prerequisites
@@ -141,3 +141,5 @@ The test suite validates logic for filtering null prices, calculating volatility
 * **Data Folder**: If you want to ignore old market data, delete the contents of the GCS data folder specified in your config.
 * **Checkpoints**: If you modify the transformation logic or schema and want to reset the streaming state, delete the checkpoint folders in GCS.
 
+## Optimization Documentation
+For detailed information on the performance optimizations implemented in this project, please refer to the `optimization_documentation.md` file in the project root.
