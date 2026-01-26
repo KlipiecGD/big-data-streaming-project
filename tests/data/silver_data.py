@@ -1,6 +1,6 @@
 from datetime import datetime, date
 
-# Valid silver records with different price scenarios
+# Valid silver records with different price scenarios - only complete records   
 VALID_SILVER_RECORDS = [
     {
         "id": "bitcoin",
@@ -52,7 +52,7 @@ VALID_SILVER_RECORDS = [
     },
 ]
 
-# Records with strong upward price movement
+# Records with strong upward price movement - data must contain strong_up trend
 STRONG_UP_SILVER_RECORDS = [
     {
         "id": "altcoin1",
@@ -72,7 +72,7 @@ STRONG_UP_SILVER_RECORDS = [
     }
 ]
 
-# Records with strong downward price movement
+# Records with strong downward price movement - data must contain strong_down trend
 STRONG_DOWN_SILVER_RECORDS = [
     {
         "id": "altcoin2",
@@ -92,7 +92,7 @@ STRONG_DOWN_SILVER_RECORDS = [
     }
 ]
 
-# Records with stable price movement
+# Records with stable price movement - data must contain stable trend
 STABLE_SILVER_RECORDS = [
     {
         "id": "stablecoin",
@@ -112,7 +112,7 @@ STABLE_SILVER_RECORDS = [
     }
 ]
 
-# Records with no price range (high_24h == low_24h)
+# Records with no price range (high_24h == low_24h) 
 NO_RANGE_SILVER_RECORDS = [
     {
         "id": "norange",

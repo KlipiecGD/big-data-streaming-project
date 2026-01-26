@@ -48,8 +48,8 @@ def transform_main_data(df: DataFrame) -> DataFrame:
         "price_trend_24h",
         when(col("price_change_percentage_24h") > 5, "strong_up")
         .when(col("price_change_percentage_24h") > 1, "up")
-        .when(col("price_change_percentage_24h") > -1, "stable")
-        .when(col("price_change_percentage_24h") > -5, "down")
+        .when(col("price_change_percentage_24h") >= -1, "stable")
+        .when(col("price_change_percentage_24h") >= -5, "down")
         .otherwise("strong_down"),
     )
 
