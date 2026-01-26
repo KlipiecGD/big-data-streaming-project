@@ -66,7 +66,6 @@ raw_stream = (
 ```python
 # src/streaming/silver/processor.py and src/streaming/gold/processor.py
 .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-        .config("spark.kryo.registrationRequired", "false")
 .config("spark.kryo.registrationRequired", "false")
 ```
 
