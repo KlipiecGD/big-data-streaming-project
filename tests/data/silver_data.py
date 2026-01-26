@@ -72,6 +72,26 @@ STRONG_UP_SILVER_RECORDS = [
     }
 ]
 
+# Records with moderate upward price movement - data must contain up trend
+UP_SILVER_RECORDS = [
+    {
+        "id": "altcoin3",
+        "symbol": "alt3",
+        "name": "AltCoin3",
+        "current_price": 75.0,
+        "market_cap": 750000000.0,
+        "market_cap_rank": 25.0,
+        "total_volume": 30000000.0,
+        "high_24h": 80.0,
+        "low_24h": 70.0,
+        "price_change_24h": 3.0,
+        "price_change_percentage_24h": 4.17,  # up
+        "last_updated": "2026-01-15T10:30:45.123Z",
+        "processed_at": datetime(2026, 1, 15, 10, 31, 0),
+        "date": date(2026, 1, 15),
+    }
+]
+
 # Records with strong downward price movement - data must contain strong_down trend
 STRONG_DOWN_SILVER_RECORDS = [
     {
@@ -86,6 +106,26 @@ STRONG_DOWN_SILVER_RECORDS = [
         "low_24h": 48.0,
         "price_change_24h": -4.0,
         "price_change_percentage_24h": -7.41,  # strong_down
+        "last_updated": "2026-01-15T10:30:45.123Z",
+        "processed_at": datetime(2026, 1, 15, 10, 31, 0),
+        "date": date(2026, 1, 15),
+    }
+]
+
+# Records with moderate downward price movement - data must contain down trend
+DOWN_SILVER_RECORDS = [
+    {
+        "id": "altcoin4",
+        "symbol": "alt4",
+        "name": "AltCoin4",
+        "current_price": 30.0,
+        "market_cap": 300000000.0,
+        "market_cap_rank": 40.0,
+        "total_volume": 15000000.0,
+        "high_24h": 35.0,
+        "low_24h": 28.0,
+        "price_change_24h": -1.5,
+        "price_change_percentage_24h": -4.76,  # down
         "last_updated": "2026-01-15T10:30:45.123Z",
         "processed_at": datetime(2026, 1, 15, 10, 31, 0),
         "date": date(2026, 1, 15),
@@ -239,3 +279,4 @@ ZERO_PRICE_SILVER_RECORDS = [
         "date": date(2026, 1, 15),
     }
 ]
+

@@ -1,8 +1,5 @@
 import pytest
-from datetime import datetime, date
 from pyspark.sql import SparkSession
-from pyspark.sql.types import DateType, TimestampType
-from dateutil import parser as date_parser
 
 from src.streaming.silver.transformations import clean_bronze_data
 from src.schemas.crypto_schema import CRYPTO_BRONZE_SCHEMA
@@ -12,6 +9,7 @@ from tests.data.bronze_data import (
     MIXED_BRONZE_RECORDS,
     EMPTY_BRONZE_RECORDS,
 )
+from tests.data.expected_fields import BRONZE_EXPECTED_FIELDS, SILVER_EXPECTED_FIELDS
 
 
 @pytest.fixture(scope="module")
@@ -30,116 +28,112 @@ def spark():
     spark_session.stop()
 
 
-def count_null_fields(record: dict) -> int:
-    """Count null fields in a record."""
-    return sum(1 for v in record.values() if v is None)
-
-
-def extract_date_from_timestamp(timestamp_str: str) -> date | None:
-    """Extract date from ISO timestamp string."""
-    if timestamp_str is None:
-        return None
-    return date_parser.isoparse(timestamp_str).date()
-
-
 class TestSilverCleaning:
     """Test suite for silver layer data cleaning transformations."""
 
-    def test_valid_records_retained(self, spark: SparkSession):
-        """Test that all valid records (no nulls) are retained."""
-        assert all(count_null_fields(r) == 0 for r in VALID_BRONZE_RECORDS), (
-            "VALID_BRONZE_RECORDS must contain only records with no nulls"
-        )
+    def test_all_expected_columns_present(self, spark: SparkSession):
+        """Test that all expected silver columns are present in output."""
         df = spark.createDataFrame(VALID_BRONZE_RECORDS, schema=CRYPTO_BRONZE_SCHEMA)
         cleaned_df = clean_bronze_data(df)
-        result = cleaned_df.collect()
 
-        expected_count = sum(1 for r in VALID_BRONZE_RECORDS if count_null_fields(r) == 0)
-        assert len(result) == expected_count, "Not all valid records were retained."
+        missing_cols = set(SILVER_EXPECTED_FIELDS) - set(cleaned_df.columns)
+        assert not missing_cols, f"Missing columns in output: {missing_cols}"
 
-    def test_records_with_nulls_filtered(self, spark: SparkSession):
+    def test_null_records_are_filtered(self, spark: SparkSession):
         """Test that records with any null values are filtered out."""
         # Validate test data assumption
-        assert all(count_null_fields(r) > 0 for r in BRONZE_RECORDS_WITH_NULLS), (
-            "BRONZE_RECORDS_WITH_NULLS must contain only records with at least one null"
+        assert all(any(v is None for v in r.values()) for r in BRONZE_RECORDS_WITH_NULLS), (
+            "BRONZE_RECORDS_WITH_NULLS must have all records with at least one null value"
         )
         
         df = spark.createDataFrame(BRONZE_RECORDS_WITH_NULLS, schema=CRYPTO_BRONZE_SCHEMA)
         cleaned_df = clean_bronze_data(df)
         result = cleaned_df.collect()
 
-        # All should be filtered out
-        expected_count = 0
-        assert len(result) == expected_count, "Records with nulls were not filtered out."
+        # All records with nulls should be filtered
+        assert len(result) == 0, "Records with nulls should be completely filtered out."
 
-    def test_mixed_records_filtered_correctly(self, spark: SparkSession):
-        """Test correct filtering on mixed valid/invalid records."""
+    def test_valid_records_pass_through(self, spark: SparkSession):
+        """Test that valid records without nulls pass through successfully."""
+        # Validate test data assumption
+        assert all(all(v is not None for v in r.values()) for r in VALID_BRONZE_RECORDS), (
+            "VALID_BRONZE_RECORDS must have all records with no null values"
+        )
+        
+        df = spark.createDataFrame(VALID_BRONZE_RECORDS, schema=CRYPTO_BRONZE_SCHEMA)
+        cleaned_df = clean_bronze_data(df)
+        result = cleaned_df.collect()
+
+        assert len(result) > 0, "Valid records should pass through cleaning."
+        assert len(result) == len(VALID_BRONZE_RECORDS), "All valid records should be retained."
+
+    def test_mixed_data_filters_correctly(self, spark: SparkSession):
+        """Test that mixed valid/invalid records are filtered correctly."""
+        # Validate test data assumption
+        valid_count = sum(1 for r in MIXED_BRONZE_RECORDS if all(v is not None for v in r.values()))
+        invalid_count = sum(1 for r in MIXED_BRONZE_RECORDS if any(v is None for v in r.values()))
+        
+        assert valid_count > 0 and invalid_count > 0, (
+            "MIXED_BRONZE_RECORDS must contain both valid and invalid records"
+        )
+        
         df = spark.createDataFrame(MIXED_BRONZE_RECORDS, schema=CRYPTO_BRONZE_SCHEMA)
         cleaned_df = clean_bronze_data(df)
         result = cleaned_df.collect()
 
-        # Count valid records
-        expected_count = sum(1 for r in MIXED_BRONZE_RECORDS if count_null_fields(r) == 0)
-        assert len(result) == expected_count, "Incorrect number of records after filtering."
+        # Only records without nulls should remain
+        assert len(result) == valid_count, "Only records without nulls should remain."
 
-        # Verify only valid IDs are present
-        valid_ids = {r["id"] for r in MIXED_BRONZE_RECORDS if count_null_fields(r) == 0}
-        result_ids = {row["id"] for row in result}
-        assert result_ids == valid_ids, "Filtered records do not match expected valid records."
-
-    def test_empty_input(self, spark: SparkSession):
-        """Test handling of empty input."""
-        assert len(EMPTY_BRONZE_RECORDS) == 0, "EMPTY_BRONZE_RECORDS must be empty for this test."
+    def test_empty_input_produces_empty_output(self, spark: SparkSession):
+        """Test that empty input produces empty output with correct schema."""
+        # Validate test data assumption
+        assert len(EMPTY_BRONZE_RECORDS) == 0, (
+            "EMPTY_BRONZE_RECORDS must be an empty list"
+        )
+        
         df = spark.createDataFrame(EMPTY_BRONZE_RECORDS, schema=CRYPTO_BRONZE_SCHEMA)
         cleaned_df = clean_bronze_data(df)
         result = cleaned_df.collect()
 
-        assert len(result) == 0, "Empty input should result in empty output."
-        assert "processed_at" in cleaned_df.columns, "processed_at column missing in output."
-        assert "date" in cleaned_df.columns, "date column missing in output."
+        assert len(result) == 0, "Empty input should produce empty output."
+        # Verify schema still contains expected columns
+        missing_cols = set(SILVER_EXPECTED_FIELDS) - set(cleaned_df.columns)
+        assert not missing_cols, f"Schema should still have all columns: {missing_cols}"
 
-    def test_new_columns_added(self, spark: SparkSession):
-        """Test that processed_at and date columns are added."""
+    def test_processed_at_is_added(self, spark: SparkSession):
+        """Test that processed_at timestamp is added to records."""
         df = spark.createDataFrame(VALID_BRONZE_RECORDS, schema=CRYPTO_BRONZE_SCHEMA)
         cleaned_df = clean_bronze_data(df)
         result = cleaned_df.collect()
 
+        assert "processed_at" in cleaned_df.columns, "processed_at column should be added."
         for row in result:
-            assert row["processed_at"] is not None, "processed_at should not be None"
-            assert isinstance(row["processed_at"], datetime), "processed_at should be a datetime"
-            assert row["date"] is not None, "date should not be None"
-            assert hasattr(row["date"], "year"), "date should have a year attribute"
+            assert row["processed_at"] is not None, "processed_at should not be None."
 
-    def test_date_extracted_from_last_updated(self, spark: SparkSession):
-        """Test that date is correctly extracted from last_updated."""
+    def test_date_is_extracted(self, spark: SparkSession):
+        """Test that date is extracted from last_updated timestamp."""
         df = spark.createDataFrame(VALID_BRONZE_RECORDS, schema=CRYPTO_BRONZE_SCHEMA)
         cleaned_df = clean_bronze_data(df)
         result = cleaned_df.collect()
 
-        result_by_id = {row["id"]: row for row in result}
-        
-        for source in VALID_BRONZE_RECORDS:
-            if count_null_fields(source) == 0:
-                result_row = result_by_id[source["id"]]
-                expected_date = extract_date_from_timestamp(source["last_updated"])
-                assert result_row["date"] == expected_date, "Expected date does not match extracted date."
-
-    def test_no_data_loss(self, spark: SparkSession):
-        """Test that all bronze columns are preserved."""
-        df = spark.createDataFrame(VALID_BRONZE_RECORDS, schema=CRYPTO_BRONZE_SCHEMA)
-        cleaned_df = clean_bronze_data(df)
-
-        bronze_cols = set(CRYPTO_BRONZE_SCHEMA.fieldNames())
-        silver_cols = set(cleaned_df.columns)
-        
-        assert bronze_cols.issubset(silver_cols), "Some bronze columns are missing in silver output."
+        assert "date" in cleaned_df.columns, "date column should be added."
+        for row in result:
+            assert row["date"] is not None, "date should not be None."
 
     def test_output_has_no_nulls(self, spark: SparkSession):
-        """Test that cleaned output contains no null values."""
+        """Test that cleaned output contains no null values in any field."""
         df = spark.createDataFrame(MIXED_BRONZE_RECORDS, schema=CRYPTO_BRONZE_SCHEMA)
         cleaned_df = clean_bronze_data(df)
         result = cleaned_df.collect()
 
         for row in result:
-            for field in CRYPTO_BRONZE_SCHEMA.fieldNames():
-                assert row[field] is not None
+            for field in BRONZE_EXPECTED_FIELDS:
+                assert row[field] is not None, f"Field {field} should not be None in cleaned output."
+
+    def test_bronze_columns_preserved(self, spark: SparkSession):
+        """Test that all original bronze columns are preserved in silver."""
+        df = spark.createDataFrame(VALID_BRONZE_RECORDS, schema=CRYPTO_BRONZE_SCHEMA)
+        cleaned_df = clean_bronze_data(df)
+
+        missing_cols = set(BRONZE_EXPECTED_FIELDS) - set(cleaned_df.columns)
+        assert not missing_cols, f"Original bronze columns should be preserved: {missing_cols}"

@@ -156,3 +156,21 @@ MIXED_BRONZE_RECORDS = [
 
 # Empty dataset
 EMPTY_BRONZE_RECORDS = []
+
+# Required silver layer fields
+SILVER_REQUIRED_FIELDS = {
+    "id",
+    "symbol",
+    "name",
+    "current_price",
+    "market_cap",
+    "market_cap_rank",
+    "total_volume",
+    "high_24h",
+    "low_24h",
+    "price_change_24h",
+    "price_change_percentage_24h",
+    "last_updated",
+    "processed_at",
+    "date",
+}
