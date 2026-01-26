@@ -209,6 +209,38 @@ class TestMainDataTransformations:
 
         assert len(result) == len(VALID_SILVER_RECORDS), "Record count should be preserved after transformation."
 
+    def test_price_volatility_calculation_accuracy(self, spark: SparkSession):
+        """Test that price volatility is calculated correctly based on input data."""
+        df = spark.createDataFrame(VALID_SILVER_RECORDS, schema=CRYPTO_SILVER_SCHEMA)
+        transformed_df = transform_main_data(df)
+        result = transformed_df.collect()
+
+        for i, row in enumerate(result):
+            source = VALID_SILVER_RECORDS[i]
+            if source["current_price"] > 0:
+                expected_volatility = ((source["high_24h"] - source["low_24h"]) / source["current_price"]) * 100
+                assert abs(row["price_volatility_24h"] - expected_volatility) < 0.01, (
+                    f"Price volatility mismatch for {source['id']}: "
+                    f"expected {expected_volatility:.2f}, got {row['price_volatility_24h']}"
+                )
+
+    def test_price_position_calculation_accuracy(self, spark: SparkSession):
+        """Test that price position is calculated correctly based on input data."""
+        df = spark.createDataFrame(VALID_SILVER_RECORDS, schema=CRYPTO_SILVER_SCHEMA)
+        transformed_df = transform_main_data(df)
+        result = transformed_df.collect()
+
+        for i, row in enumerate(result):
+            source = VALID_SILVER_RECORDS[i]
+            price_range = source["high_24h"] - source["low_24h"]
+            
+            if price_range > 0:
+                expected_position = ((source["current_price"] - source["low_24h"]) / price_range) * 100
+                assert abs(row["price_position_24h"] - expected_position) < 0.01, (
+                    f"Price position mismatch for {source['id']}: "
+                    f"expected {expected_position:.2f}, got {row['price_position_24h']}"
+                )
+
 
 class TestRollingAverageTransformations:
     """Test suite for gold layer rolling average transformations."""
@@ -305,3 +337,72 @@ class TestRollingAverageTransformations:
         for row in result:
             for field in GOLD_ROLLING_AVG_EXPECTED_FIELDS:
                 assert row[field] is not None, f"Field {field} should not be None."
+
+    def test_rolling_average_price_calculation_accuracy(self, spark: SparkSession):
+        """Test that rolling average price is calculated correctly."""
+        df = spark.createDataFrame(ROLLING_AVG_SILVER_RECORDS, schema=CRYPTO_SILVER_SCHEMA)
+        rolling_df = transform_rolling_average(df)
+        result = rolling_df.collect()
+
+        # Group source data by coin
+        coin_prices = {}
+        for record in ROLLING_AVG_SILVER_RECORDS:
+            coin_id = record["id"]
+            if coin_id not in coin_prices:
+                coin_prices[coin_id] = []
+            coin_prices[coin_id].append(record["current_price"])
+
+        # Verify average prices
+        for row in result:
+            coin_id = row["id"]
+            expected_avg = sum(coin_prices[coin_id]) / len(coin_prices[coin_id])
+            assert abs(row["avg_price_2min"] - expected_avg) < 0.01, (
+                f"Average price mismatch for {coin_id}: "
+                f"expected {expected_avg:.2f}, got {row['avg_price_2min']}"
+            )
+
+    def test_rolling_average_market_cap_calculation_accuracy(self, spark: SparkSession):
+        """Test that rolling average market cap is calculated correctly."""
+        df = spark.createDataFrame(ROLLING_AVG_SILVER_RECORDS, schema=CRYPTO_SILVER_SCHEMA)
+        rolling_df = transform_rolling_average(df)
+        result = rolling_df.collect()
+
+        # Group source data by coin
+        coin_market_caps = {}
+        for record in ROLLING_AVG_SILVER_RECORDS:
+            coin_id = record["id"]
+            if coin_id not in coin_market_caps:
+                coin_market_caps[coin_id] = []
+            coin_market_caps[coin_id].append(record["market_cap"])
+
+        # Verify average market caps
+        for row in result:
+            coin_id = row["id"]
+            expected_avg = sum(coin_market_caps[coin_id]) / len(coin_market_caps[coin_id])
+            assert abs(row["avg_market_cap_2min"] - expected_avg) < 1.0, (
+                f"Average market cap mismatch for {coin_id}: "
+                f"expected {expected_avg:.2f}, got {row['avg_market_cap_2min']}"
+            )
+
+    def test_rolling_average_volume_calculation_accuracy(self, spark: SparkSession):
+        """Test that rolling average volume is calculated correctly."""
+        df = spark.createDataFrame(ROLLING_AVG_SILVER_RECORDS, schema=CRYPTO_SILVER_SCHEMA)
+        rolling_df = transform_rolling_average(df)
+        result = rolling_df.collect()
+
+        # Group source data by coin
+        coin_volumes = {}
+        for record in ROLLING_AVG_SILVER_RECORDS:
+            coin_id = record["id"]
+            if coin_id not in coin_volumes:
+                coin_volumes[coin_id] = []
+            coin_volumes[coin_id].append(record["total_volume"])
+
+        # Verify average volumes
+        for row in result:
+            coin_id = row["id"]
+            expected_avg = sum(coin_volumes[coin_id]) / len(coin_volumes[coin_id])
+            assert abs(row["avg_volume_2min"] - expected_avg) < 1.0, (
+                f"Average volume mismatch for {coin_id}: "
+                f"expected {expected_avg:.2f}, got {row['avg_volume_2min']}"
+            )
