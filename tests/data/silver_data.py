@@ -1,4 +1,5 @@
 from datetime import datetime, date
+# Sample silver layer data for testing transformations
 
 # Valid silver records with different price scenarios - only complete records   
 VALID_SILVER_RECORDS = [

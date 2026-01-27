@@ -1,3 +1,5 @@
+# Sample bronze layer data for testing transformations
+
 # Complete valid records
 VALID_BRONZE_RECORDS = [
     {
