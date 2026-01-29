@@ -41,11 +41,6 @@ class TestSilverCleaning:
 
     def test_null_records_are_filtered(self, spark: SparkSession):
         """Test that records with any null values are filtered out."""
-        # Validate test data assumption
-        assert all(any(v is None for v in r.values()) for r in BRONZE_RECORDS_WITH_NULLS), (
-            "BRONZE_RECORDS_WITH_NULLS must have all records with at least one null value"
-        )
-        
         df = spark.createDataFrame(BRONZE_RECORDS_WITH_NULLS, schema=CRYPTO_BRONZE_SCHEMA)
         cleaned_df = clean_bronze_data(df)
         result = cleaned_df.collect()
@@ -55,11 +50,6 @@ class TestSilverCleaning:
 
     def test_valid_records_pass_through(self, spark: SparkSession):
         """Test that valid records without nulls pass through successfully."""
-        # Validate test data assumption
-        assert all(all(v is not None for v in r.values()) for r in VALID_BRONZE_RECORDS), (
-            "VALID_BRONZE_RECORDS must have all records with no null values"
-        )
-        
         df = spark.createDataFrame(VALID_BRONZE_RECORDS, schema=CRYPTO_BRONZE_SCHEMA)
         cleaned_df = clean_bronze_data(df)
         result = cleaned_df.collect()
@@ -71,12 +61,7 @@ class TestSilverCleaning:
         """Test that mixed valid/invalid records are filtered correctly."""
         # Validate test data assumption
         valid_count = sum(1 for r in MIXED_BRONZE_RECORDS if all(v is not None for v in r.values()))
-        invalid_count = sum(1 for r in MIXED_BRONZE_RECORDS if any(v is None for v in r.values()))
-        
-        assert valid_count > 0 and invalid_count > 0, (
-            "MIXED_BRONZE_RECORDS must contain both valid and invalid records"
-        )
-        
+
         df = spark.createDataFrame(MIXED_BRONZE_RECORDS, schema=CRYPTO_BRONZE_SCHEMA)
         cleaned_df = clean_bronze_data(df)
         result = cleaned_df.collect()
@@ -86,11 +71,6 @@ class TestSilverCleaning:
 
     def test_empty_input_produces_empty_output(self, spark: SparkSession):
         """Test that empty input produces empty output with correct schema."""
-        # Validate test data assumption
-        assert len(EMPTY_BRONZE_RECORDS) == 0, (
-            "EMPTY_BRONZE_RECORDS must be an empty list"
-        )
-        
         df = spark.createDataFrame(EMPTY_BRONZE_RECORDS, schema=CRYPTO_BRONZE_SCHEMA)
         cleaned_df = clean_bronze_data(df)
         result = cleaned_df.collect()

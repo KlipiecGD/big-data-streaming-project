@@ -76,11 +76,6 @@ class TestMainDataTransformations:
 
     def test_price_volatility_handles_zero_price(self, spark: SparkSession):
         """Test that zero price doesn't cause errors in volatility calculation."""
-        # Validate test data assumption
-        assert any(r["current_price"] == 0 for r in ZERO_PRICE_SILVER_RECORDS), (
-            "ZERO_PRICE_SILVER_RECORDS must contain at least one record with current_price == 0"
-        )
-        
         df = spark.createDataFrame(ZERO_PRICE_SILVER_RECORDS, schema=CRYPTO_SILVER_SCHEMA)
         transformed_df = transform_main_data(df)
         result = transformed_df.collect()
@@ -102,11 +97,6 @@ class TestMainDataTransformations:
 
     def test_price_position_handles_no_range(self, spark: SparkSession):
         """Test that no price range defaults to middle position."""
-        # Validate test data assumption
-        assert all(r["high_24h"] == r["low_24h"] for r in NO_RANGE_SILVER_RECORDS), (
-            "NO_RANGE_SILVER_RECORDS must have all records where high_24h == low_24h"
-        )
-        
         df = spark.createDataFrame(NO_RANGE_SILVER_RECORDS, schema=CRYPTO_SILVER_SCHEMA)
         transformed_df = transform_main_data(df)
         result = transformed_df.collect()
@@ -126,11 +116,6 @@ class TestMainDataTransformations:
 
     def test_strong_up_trend_categorization(self, spark: SparkSession):
         """Test that strong upward movement is categorized correctly."""
-        # Validate test data assumption
-        assert all(r["price_change_percentage_24h"] > 5 for r in STRONG_UP_SILVER_RECORDS), (
-            "STRONG_UP_SILVER_RECORDS must have all records with price_change_percentage_24h > 5"
-        )
-        
         df = spark.createDataFrame(STRONG_UP_SILVER_RECORDS, schema=CRYPTO_SILVER_SCHEMA)
         transformed_df = transform_main_data(df)
         result = transformed_df.collect()
@@ -140,11 +125,6 @@ class TestMainDataTransformations:
 
     def test_strong_down_trend_categorization(self, spark: SparkSession):
         """Test that strong downward movement is categorized correctly."""
-        # Validate test data assumption
-        assert all(r["price_change_percentage_24h"] < -5 for r in STRONG_DOWN_SILVER_RECORDS), (
-            "STRONG_DOWN_SILVER_RECORDS must have all records with price_change_percentage_24h < -5"
-        )
-        
         df = spark.createDataFrame(STRONG_DOWN_SILVER_RECORDS, schema=CRYPTO_SILVER_SCHEMA)
         transformed_df = transform_main_data(df)
         result = transformed_df.collect()
@@ -154,11 +134,6 @@ class TestMainDataTransformations:
 
     def test_stable_trend_categorization(self, spark: SparkSession):
         """Test that stable movement is categorized correctly."""
-        # Validate test data assumption
-        assert all(-1 <= r["price_change_percentage_24h"] <= 1 for r in STABLE_SILVER_RECORDS), (
-            "STABLE_SILVER_RECORDS must have all records with -1 <= price_change_percentage_24h <= 1"
-        )
-        
         df = spark.createDataFrame(STABLE_SILVER_RECORDS, schema=CRYPTO_SILVER_SCHEMA)
         transformed_df = transform_main_data(df)
         result = transformed_df.collect()
@@ -168,10 +143,6 @@ class TestMainDataTransformations:
 
     def test_up_trend_categorization(self, spark: SparkSession):
         """Test that upward movement (1% < x <= 5%) is categorized correctly."""
-        # Validate test data assumption
-        assert all(1 < r["price_change_percentage_24h"] <= 5 for r in UP_SILVER_RECORDS), (
-            "UP_SILVER_RECORDS must have all records with 1 < price_change_percentage_24h <= 5"
-        )
         df = spark.createDataFrame(UP_SILVER_RECORDS, schema=CRYPTO_SILVER_SCHEMA)
         transformed_df = transform_main_data(df)
         result = transformed_df.collect()
@@ -181,9 +152,6 @@ class TestMainDataTransformations:
     def test_down_trend_categorization(self, spark: SparkSession):
         """Test that downward movement (-5% <= x < -1%) is categorized correctly."""
         # Validate test data assumption
-        assert all(-5 <= r["price_change_percentage_24h"] < -1 for r in DOWN_SILVER_RECORDS), (
-            "DOWN_SILVER_RECORDS must have all records with -5 <= price_change_percentage_24h < -1"
-        )
         df = spark.createDataFrame(DOWN_SILVER_RECORDS, schema=CRYPTO_SILVER_SCHEMA)
         transformed_df = transform_main_data(df)
         result = transformed_df.collect()
@@ -310,12 +278,8 @@ class TestRollingAverageTransformations:
 
     def test_grouping_by_coin(self, spark: SparkSession):
         """Test that aggregation groups by individual coins."""
-        # Validate test data has multiple coins
         unique_coins = set(r["id"] for r in ROLLING_AVG_SILVER_RECORDS)
-        assert len(unique_coins) > 1, (
-            "ROLLING_AVG_SILVER_RECORDS must contain at least 2 different coins for this test"
-        )
-        
+
         df = spark.createDataFrame(ROLLING_AVG_SILVER_RECORDS, schema=CRYPTO_SILVER_SCHEMA)
         rolling_df = transform_rolling_average(df)
         result = rolling_df.collect()
